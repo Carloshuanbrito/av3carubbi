@@ -1,4 +1,3 @@
-from collections import deque
 import sys
 
 
@@ -18,31 +17,34 @@ def add_edge(graph, u, v, capacity):
     return len(graph[u]) - 1
 
 
-def bfs(graph, source, sink, parent):
+def dfs(graph, source, sink, parent):
     for i in range(len(parent)):
         parent[i] = None
 
-    queue = deque([source])
+    visited = [False] * len(graph)
+    stack = [source]
+    visited[source] = True
     parent[source] = (-1, -1)
 
-    while queue:
-        u = queue.popleft()
+    while stack:
+        u = stack.pop()
 
         for edge_index, edge in enumerate(graph[u]):
-            if parent[edge.to] is None and edge.capacity > 0:
+            if not visited[edge.to] and edge.capacity > 0:
                 parent[edge.to] = (u, edge_index)
                 if edge.to == sink:
                     return True
-                queue.append(edge.to)
+                visited[edge.to] = True
+                stack.append(edge.to)
 
     return False
 
 
-def edmonds_karp(graph, source, sink):
+def ford_fulkerson(graph, source, sink):
     flow = 0
     parent = [None] * len(graph)
 
-    while bfs(graph, source, sink, parent):
+    while dfs(graph, source, sink, parent):
         path_flow = 10**18
         current = sink
 
@@ -101,7 +103,7 @@ def main():
         edge_index = add_edge(graph, boy_vertex, girl_vertex, 1)
         pair_edges.append((boy, girl, boy_vertex, edge_index))
 
-    maximum_pairs = edmonds_karp(graph, source, sink)
+    maximum_pairs = ford_fulkerson(graph, source, sink)
 
     chosen_pairs = []
     for boy, girl, boy_vertex, edge_index in pair_edges:

@@ -30,9 +30,9 @@ Assim, cada unidade de fluxo representa exatamente um par de dança válido.
 
 ## 4. Algoritmo usado
 
-Foi usado Edmonds-Karp.
+Foi usado Ford-Fulkerson.
 
-Ele é uma versão do Ford-Fulkerson que encontra caminhos aumentantes com BFS.
+Ele encontra caminhos aumentantes no grafo residual e aumenta o fluxo enquanto ainda existir caminho de `S` até `T`.
 
 O algoritmo trabalha no grafo residual, que mostra onde ainda existe capacidade para passar mais fluxo.
 
@@ -70,10 +70,10 @@ Não é possível formar mais de 2 pares porque só existem 2 meninas.
 
 ## 7. Complexidade
 
-O Edmonds-Karp tem complexidade geral:
+No Ford-Fulkerson, como as capacidades são inteiras, o número de aumentos depende do valor do fluxo máximo.
 
 ```text
-O(V * E^2)
+O(F * E)
 ```
 
 Neste problema, como as capacidades são unitárias, o número de aumentos é no máximo `min(n, m)`.

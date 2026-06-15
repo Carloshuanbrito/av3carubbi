@@ -1,5 +1,71 @@
 # CSES School Dance - Fluxo Máximo em Rede
 
+## Como executar
+
+O arquivo principal da solução é:
+
+```text
+T3/src/main.py
+```
+
+Requisito:
+
+- Python 3 instalado.
+
+Para executar no PowerShell, a partir da raiz do repositório:
+
+```powershell
+python T3\src\main.py
+```
+
+Depois, cole a entrada do problema no terminal.
+
+Também é possível executar usando um arquivo de entrada:
+
+```powershell
+Get-Content T3\dados\entradas_do_problema.txt | python T3\src\main.py
+```
+
+Em terminal Linux, macOS ou Git Bash:
+
+```bash
+python3 T3/src/main.py < T3/dados/entradas_do_problema.txt
+```
+
+Exemplo de entrada:
+
+```text
+3 2 4
+1 1
+1 2
+2 1
+3 1
+```
+
+Uma saída possível:
+
+```text
+2
+1 2
+3 1
+```
+
+## Abordagem resumida
+
+O problema foi modelado como uma rede de fluxo para encontrar um emparelhamento bipartido máximo.
+
+A rede usa quatro camadas:
+
+```text
+S -> meninos -> meninas -> T
+```
+
+Cada unidade de fluxo que sai da origem `S`, passa por um menino, passa por uma menina e chega ao sorvedouro `T` representa um par de dança válido.
+
+Todas as capacidades são `1`, garantindo que cada menino e cada menina apareçam em no máximo um par.
+
+O fluxo máximo é calculado com Ford-Fulkerson usando DFS para encontrar caminhos aumentantes no grafo residual. Depois do cálculo, os pares escolhidos são recuperados pelas arestas `menino -> menina` que receberam fluxo.
+
 ## 1. Problema em linguagem simples
 
 O problema **School Dance** pede para formar o maior número possível de pares de dança entre meninos e meninas.
@@ -66,14 +132,16 @@ As capacidades são todas unitárias nas arestas que controlam a participação:
 
 Assim, mesmo que um menino aceite dançar com várias meninas, apenas uma dessas opções pode ser usada no fluxo final. O mesmo vale para cada menina.
 
-## 5. Algoritmo Edmonds-Karp
+## 5. Algoritmo Ford-Fulkerson
 
-Usamos o algoritmo **Edmonds-Karp**, uma versão do Ford-Fulkerson que sempre usa **BFS** para encontrar caminhos aumentantes no grafo residual.
+Usamos somente o algoritmo **Ford-Fulkerson** para calcular o fluxo máximo.
+
+Nesta implementação, cada caminho aumentante é encontrado com uma busca em profundidade no grafo residual.
 
 A ideia é:
 
 1. começar com fluxo `0`;
-2. procurar, por BFS, um caminho de `S` até `T` com capacidade residual positiva;
+2. procurar um caminho de `S` até `T` com capacidade residual positiva;
 3. aumentar o fluxo nesse caminho;
 4. atualizar as capacidades residuais;
 5. repetir até não existir mais caminho aumentante.
@@ -107,7 +175,6 @@ Na implementação, isso é identificado quando a aresta original ficou com capa
 Arquivo principal: [`src/main.py`](src/main.py)
 
 ```python
-from collections import deque
 import sys
 
 
@@ -127,31 +194,34 @@ def add_edge(graph, u, v, capacity):
     return len(graph[u]) - 1
 
 
-def bfs(graph, source, sink, parent):
+def dfs(graph, source, sink, parent):
     for i in range(len(parent)):
         parent[i] = None
 
-    queue = deque([source])
+    visited = [False] * len(graph)
+    stack = [source]
+    visited[source] = True
     parent[source] = (-1, -1)
 
-    while queue:
-        u = queue.popleft()
+    while stack:
+        u = stack.pop()
 
         for edge_index, edge in enumerate(graph[u]):
-            if parent[edge.to] is None and edge.capacity > 0:
+            if not visited[edge.to] and edge.capacity > 0:
                 parent[edge.to] = (u, edge_index)
                 if edge.to == sink:
                     return True
-                queue.append(edge.to)
+                visited[edge.to] = True
+                stack.append(edge.to)
 
     return False
 
 
-def edmonds_karp(graph, source, sink):
+def ford_fulkerson(graph, source, sink):
     flow = 0
     parent = [None] * len(graph)
 
-    while bfs(graph, source, sink, parent):
+    while dfs(graph, source, sink, parent):
         path_flow = 10**18
         current = sink
 
@@ -210,7 +280,7 @@ def main():
         edge_index = add_edge(graph, boy_vertex, girl_vertex, 1)
         pair_edges.append((boy, girl, boy_vertex, edge_index))
 
-    maximum_pairs = edmonds_karp(graph, source, sink)
+    maximum_pairs = ford_fulkerson(graph, source, sink)
 
     chosen_pairs = []
     for boy, girl, boy_vertex, edge_index in pair_edges:
@@ -227,11 +297,11 @@ if __name__ == "__main__":
     main()
 ```
 
-## 9. Uso de `collections.deque`
+## 9. Busca de caminhos aumentantes
 
-A BFS usa `collections.deque`, pois ela permite inserir no fim e remover do início da fila em tempo constante.
+A implementação usa uma pilha para fazer busca em profundidade no grafo residual.
 
-Isso é adequado para a busca em largura do Edmonds-Karp.
+Essa busca encontra um caminho aumentante qualquer de `S` até `T`, como previsto pelo Ford-Fulkerson.
 
 ## 10. Limites do problema
 
@@ -252,7 +322,7 @@ O número de arestas principais é:
 E = n + m + k
 ```
 
-Como `n` e `m` são no máximo `500`, e `k` é no máximo `1000`, a rede é pequena o suficiente para Edmonds-Karp.
+Como `n` e `m` são no máximo `500`, e `k` é no máximo `1000`, a rede é pequena o suficiente para Ford-Fulkerson.
 
 ## 11. Formato da saída
 
@@ -271,10 +341,10 @@ Exemplo de formato:
 
 ## 12. Análise de complexidade
 
-No Edmonds-Karp, a complexidade geral é:
+No Ford-Fulkerson, usando capacidades inteiras, o número de iterações depende do valor do fluxo máximo.
 
 ```text
-O(V * E^2)
+O(F * E)
 ```
 
 Para este problema, como todas as capacidades são `1`, cada aumento adiciona exatamente uma unidade de fluxo. O fluxo máximo é no máximo:
@@ -283,7 +353,7 @@ Para este problema, como todas as capacidades são `1`, cada aumento adiciona ex
 min(n, m)
 ```
 
-Assim, uma forma prática de analisar esta implementação é:
+Assim, para esta implementação:
 
 ```text
 O(F * E)
@@ -344,6 +414,6 @@ Também poderiam existir outras saídas corretas com 2 pares, dependendo dos cam
 2. Modelamos como fluxo máximo: `S -> meninos -> meninas -> T`.
 3. Todas as capacidades são `1`, garantindo que cada pessoa participe de no máximo um par.
 4. Cada unidade de fluxo representa um par de dança válido.
-5. Usamos Edmonds-Karp com BFS para encontrar caminhos aumentantes no grafo residual.
+5. Usamos Ford-Fulkerson para encontrar caminhos aumentantes no grafo residual.
 6. As arestas reversas permitem reorganizar escolhas anteriores.
 7. Depois do fluxo máximo, recuperamos os pares olhando as arestas menino-menina que receberam fluxo.
